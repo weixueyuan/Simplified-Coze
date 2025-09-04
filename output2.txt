@@ -1,0 +1,102 @@
+=== 当前配置 ===
+=== 配置文件内容 ===
+所有配置节: ['openai_compatible', 'available_modes']
+
+[openai_compatible]
+  model = gpt-4o
+  base_url = http://35.220.164.252:3888/v1/
+  api_key = sk-3H9ls...
+  max_tokens = 8192
+  temperature = 0.0
+
+[available_modes]
+  modes = openai,claude,google,dashscope,zhipu
+
+[openai_compatible]
+  section = openai_compatible
+  model = gpt-4o
+  base_url = http://35.220.164.252:3888/v1/
+  api_key = sk-3H9ls...
+  max_tokens = 8192
+  temperature = 0.0
+
+=== LangChain配置化LLM使用示例 ===
+
+可用模型:
+['openai_compatible']
+=== 配置文件内容 ===
+所有配置节: ['openai_compatible', 'available_modes']
+
+[openai_compatible]
+  model = gpt-4o
+  base_url = http://35.220.164.252:3888/v1/
+  api_key = sk-3H9ls...
+  max_tokens = 8192
+  temperature = 0.0
+
+[available_modes]
+  modes = openai,claude,google,dashscope,zhipu
+openai:gpt-4o
+{'section': 'openai_compatible', 'model': 'gpt-4o', 'base_url': 'http://35.220.164.252:3888/v1/', 'api_key': 'sk-3H9lsju4iRuXP8nsR3EpCAnidg88ltB4OAbv5aYkv1gvLk1V', 'max_tokens': 8192, 'temperature': 0.0}
+openai
+当前配置: openai_compatible
+模型: gpt-4o
+
+=== 示例1：文本处理（使用默认配置） ===
+respont is  content='抱歉，我无法直接生成或展示图像内容。但我可以为你提供一些如何设计吉卜力风格人物头像的建议。如果你有绘图工具或软件，可以根据以下指导进行创作：\n\n1. **特征设计**：\n   - **眼睛**：大而明亮，通常是圆润且富有表情的。\n   - **面部线条**：柔和简单，强调自然和和谐。\n   - **发型**：自然、流畅，可能具有些许飘逸感。\n\n2. **服装和配饰**：\n   - 参考吉卜力电影中的服装设计，通常是简洁而富有细节的服饰，带有些许民族风情或复古气息。\n\n3. **色彩选择**：\n   - 自然且柔和的色调，能够传达角色的情感和性格。\n   - 使用略微柔和的饱和度，使颜色不显突兀。\n\n4. **背景**：\n   - 可以考虑加入一些自然元素，如花草或者天空，保持简单以突出人物。\n\n通过这些建议，你可以尝试自己动手绘制一个吉卜力风格的人物头像。如果需要具体的例子，吉卜力工作室的一些经典作品如《龙猫》、《千与千寻》、《哈尔的移动城堡》都是很好的参考素材。' additional_kwargs={'refusal': None} response_metadata={'token_usage': {'completion_tokens': 305, 'prompt_tokens': 31, 'total_tokens': 336, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 0}}, 'model_name': 'gpt-4o-2024-08-06', 'system_fingerprint': 'fp_f33640a400', 'id': 'chatcmpl-CBKwRD1raE7ep18LT5HgKqurxbqlz', 'service_tier': 'default', 'finish_reason': 'stop', 'logprobs': None} id='run--b77017f4-6683-41bc-924e-0a0c2d8688e9-0' usage_metadata={'input_tokens': 31, 'output_tokens': 305, 'total_tokens': 336, 'input_token_details': {'audio': 0, 'cache_read': 0}, 'output_token_details': {'audio': 0, 'reasoning': 0}}
+respont text is  抱歉，我无法直接生成或展示图像内容。但我可以为你提供一些如何设计吉卜力风格人物头像的建议。如果你有绘图工具或软件，可以根据以下指导进行创作：
+
+1. **特征设计**：
+   - **眼睛**：大而明亮，通常是圆润且富有表情的。
+   - **面部线条**：柔和简单，强调自然和和谐。
+   - **发型**：自然、流畅，可能具有些许飘逸感。
+
+2. **服装和配饰**：
+   - 参考吉卜力电影中的服装设计，通常是简洁而富有细节的服饰，带有些许民族风情或复古气息。
+
+3. **色彩选择**：
+   - 自然且柔和的色调，能够传达角色的情感和性格。
+   - 使用略微柔和的饱和度，使颜色不显突兀。
+
+4. **背景**：
+   - 可以考虑加入一些自然元素，如花草或者天空，保持简单以突出人物。
+
+通过这些建议，你可以尝试自己动手绘制一个吉卜力风格的人物头像。如果需要具体的例子，吉卜力工作室的一些经典作品如《龙猫》、《千与千寻》、《哈尔的移动城堡》都是很好的参考素材。
+respont content is  抱歉，我无法直接生成或展示图像内容。但我可以为你提供一些如何设计吉卜力风格人物头像的建议。如果你有绘图工具或软件，可以根据以下指导进行创作：
+
+1. **特征设计**：
+   - **眼睛**：大而明亮，通常是圆润且富有表情的。
+   - **面部线条**：柔和简单，强调自然和和谐。
+   - **发型**：自然、流畅，可能具有些许飘逸感。
+
+2. **服装和配饰**：
+   - 参考吉卜力电影中的服装设计，通常是简洁而富有细节的服饰，带有些许民族风情或复古气息。
+
+3. **色彩选择**：
+   - 自然且柔和的色调，能够传达角色的情感和性格。
+   - 使用略微柔和的饱和度，使颜色不显突兀。
+
+4. **背景**：
+   - 可以考虑加入一些自然元素，如花草或者天空，保持简单以突出人物。
+
+通过这些建议，你可以尝试自己动手绘制一个吉卜力风格的人物头像。如果需要具体的例子，吉卜力工作室的一些经典作品如《龙猫》、《千与千寻》、《哈尔的移动城堡》都是很好的参考素材。
+
+=== 示例3：图片处理 ===
+content='将图片的色彩换成黄色可以使用图像编辑软件，比如Photoshop或GIMP。以下是如何在Photoshop中完成此操作的步骤：\n\n1. **打开图片**：在Photoshop中打开你要修改颜色的图片。\n\n2. **创建调整图层**：点击“图层”菜单，选择“新建调整图层”，然后选择“色相/饱和度”。\n\n3. **调整色相**：在色相/饱和度调整面板中，调整色相滑块，使图像变为黄色。一般来说，同色相滑块右移直到色彩变为黄色。\n\n4. **调整饱和度和亮度（可选）**：根据需要，调整饱和度和亮度滑块，以达到更满意的效果。\n\n5. **应用滤镜**：如果颜色转换不理想，可以试用“渲染”中的“颜色滤镜”，选择黄色滤镜并调整强度。\n\n6. **保存图片**：一旦你对颜色满意了，保存图像即可。\n\n如果不使用软件，您可以使用在线的图片编辑工具来实现类似的效果。您直接上传您的图像并选择“更改颜色”或“滤镜”选项，然后选择想要的目标颜色即可。' additional_kwargs={'refusal': None} response_metadata={'token_usage': {'completion_tokens': 280, 'prompt_tokens': 926, 'total_tokens': 1206, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 0}}, 'model_name': 'gpt-4o-2024-08-06', 'system_fingerprint': 'fp_8458c98457', 'id': 'chatcmpl-CBKwZwyjKNGyaq0UBcBFsRl5AXFfM', 'service_tier': None, 'finish_reason': 'stop', 'logprobs': None} id='run--4f8509f4-afc4-459e-8196-26228ae5880f-0' usage_metadata={'input_tokens': 926, 'output_tokens': 280, 'total_tokens': 1206, 'input_token_details': {'audio': 0, 'cache_read': 0}, 'output_token_details': {'audio': 0, 'reasoning': 0}}
+将图片的色彩换成黄色可以使用图像编辑软件，比如Photoshop或GIMP。以下是如何在Photoshop中完成此操作的步骤：
+
+1. **打开图片**：在Photoshop中打开你要修改颜色的图片。
+
+2. **创建调整图层**：点击“图层”菜单，选择“新建调整图层”，然后选择“色相/饱和度”。
+
+3. **调整色相**：在色相/饱和度调整面板中，调整色相滑块，使图像变为黄色。一般来说，同色相滑块右移直到色彩变为黄色。
+
+4. **调整饱和度和亮度（可选）**：根据需要，调整饱和度和亮度滑块，以达到更满意的效果。
+
+5. **应用滤镜**：如果颜色转换不理想，可以试用“渲染”中的“颜色滤镜”，选择黄色滤镜并调整强度。
+
+6. **保存图片**：一旦你对颜色满意了，保存图像即可。
+
+如果不使用软件，您可以使用在线的图片编辑工具来实现类似的效果。您直接上传您的图像并选择“更改颜色”或“滤镜”选项，然后选择想要的目标颜色即可。
+结果: {'type': 'multimodal', 'content': []}
+
