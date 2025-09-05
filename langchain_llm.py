@@ -6,7 +6,7 @@ LangChain LLM模块
 
 import os
 import base64
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from langchain.chat_models import init_chat_model
 from config_reader import ConfigReader
 
@@ -19,63 +19,20 @@ class LangChainLLM:
         self.config = None
         self.provider = None
     
-    def _setup_environment(self, config: Dict[str, Any], provider: str):
-        """设置环境变量"""
-        if provider == "anthropic" or provider == "claude":
-            os.environ["ANTHROPIC_API_KEY"] = config["api_key"]
-            os.environ["ANTHROPIC_BASE_URL"] = config["base_url"]
-        elif provider == "openai":
-            os.environ["OPENAI_API_KEY"] = config["api_key"]
-            os.environ["OPENAI_BASE_URL"] = config["base_url"]
-        elif provider == "google":
-            os.environ["GOOGLE_API_KEY"] = config["api_key"]
-            os.environ["GOOGLE_BASE_URL"] = config["base_url"]
-        elif provider == "dashscope":
-            os.environ["DASHSCOPE_API_KEY"] = config["api_key"]
-            os.environ["DASHSCOPE_BASE_URL"] = config["base_url"]
-        elif provider == "zhipu":
-            os.environ["ZHIPU_API_KEY"] = config["api_key"]
-            os.environ["ZHIPU_BASE_URL"] = config["base_url"]
-        else:
-            # 默认使用OpenAI兼容格式
-            os.environ["OPENAI_API_KEY"] = config["api_key"]
-            os.environ["OPENAI_BASE_URL"] = config["base_url"]
-    
-    def _get_full_model_name(self, model_name: str, provider: str) -> str:
-        """获取完整的模型名称"""
-        if provider == "openai":
-            return f"openai:{model_name}"
-        elif provider == "anthropic" or provider == "claude":
-            return f"anthropic:{model_name}"
-        elif provider == "google":
-            return f"google_genai:{model_name}"
-        elif provider == "dashscope":
-            return f"dashscope:{model_name}"
-        elif provider == "zhipu":
-            return f"zhipu:{model_name}"
-        else:
-            # 默认使用OpenAI格式
-            return f"openai:{model_name}"
-    
     def init_model(self):
         """初始化模型"""
         try:
             # 获取配置
-            config = self.config_reader.get_llm_config()
-            
-            # 根据配置节名称获取提供商
-            section = config["section"]
-            provider = self.config_reader.get_model_provider(section)
+            config = self.config_reader.get_pipeline_configs()[0]  # 使用第一个配置
             
             # 设置环境变量
-            self._setup_environment(config, provider)
+            self._setup_environment(config)
             
             # 构建完整的模型名称
             model_name = config["model"]
-            full_model_name = self._get_full_model_name(model_name, provider)
-            print(full_model_name)
-            print(config)
-            print(provider)
+            full_model_name = self._get_full_model_name(model_name, config.get("section_name", "openai"))
+            
+            print(f"🔧 初始化模型: {full_model_name}")
             
             # 初始化模型
             model = init_chat_model(full_model_name)
@@ -83,11 +40,39 @@ class LangChainLLM:
             # 保存到实例变量
             self.model = model
             self.config = config
-            self.provider = provider
+            self.provider = config.get("section_name", "openai")
             
             return model
         except Exception as e:
             raise Exception(f"模型初始化失败: {e}")
+    
+    def _setup_environment(self, config: Dict[str, Any]):
+        """设置环境变量"""
+        # 根据配置节名称设置不同的环境变量
+        section_name = config.get("section_name", "").lower()
+        
+        if "claude" in section_name:
+            os.environ["ANTHROPIC_API_KEY"] = config["api_key"]
+            os.environ["ANTHROPIC_BASE_URL"] = config["base_url"]
+        elif "gemini" in section_name:
+            os.environ["GOOGLE_API_KEY"] = config["api_key"]
+            os.environ["GOOGLE_BASE_URL"] = config["base_url"]
+        else:
+            # 默认使用OpenAI兼容格式
+            os.environ["OPENAI_API_KEY"] = config["api_key"]
+            os.environ["OPENAI_BASE_URL"] = config["base_url"]
+    
+    def _get_full_model_name(self, model_name: str, provider: str) -> str:
+        """获取完整的模型名称"""
+        if provider == "openai" or "openai" in provider:
+            return f"openai:{model_name}"
+        elif provider == "anthropic" or provider == "claude":
+            return f"anthropic:{model_name}"
+        elif provider == "google" or "gemini" in provider:
+            return f"google_genai:{model_name}"
+        else:
+            # 默认使用OpenAI格式
+            return f"openai:{model_name}"
     
     def get_model(self):
         """获取模型实例"""
@@ -97,19 +82,24 @@ class LangChainLLM:
         return self.model
     
     def _process_response(self, response) -> Dict[str, Any]:
-        """处理响应，直接返回包含多个JSON对象的列表"""
+        """处理响应，返回包含text、image、video键的字典"""
         try:
             # 获取文本内容
             content = response.text()
             
+            # 初始化结果字典
+            result = {
+                "text": "",
+                "image": "",
+                "video": ""
+            }
+            
             # 检查是否包含图片
             import re
             
-            # 使用更简单的正则表达式直接匹配base64图片数据
+            # 使用正则表达式匹配base64图片数据
             if 'data:image' in content:
-                # 包含图片，返回列表
-                result = []
-                
+                # 包含图片
                 # 查找所有base64图片数据的位置
                 pattern = r'data:image/([^;]+);base64,([^"]+)'
                 image_matches = re.findall(pattern, content)
@@ -122,144 +112,121 @@ class LangChainLLM:
                     text_content = content[:first_image_pos].strip()
                     # 清理文本末尾的换行符和图片标记开头
                     text_content = re.sub(r'\n*!\[image\]\(?$', '', text_content).strip()
-                    
-                    if text_content:
-                        result.append({"type": "text", "text": text_content})
+                    result["text"] = text_content
                 
-                # 添加图片
-                for i, (image_type, base64_data) in enumerate(image_matches):
-                    result.append({
-                        "type": "image", 
-                        "image_type": image_type,
-                        "base64_data": base64_data,
-                        "index": i + 1
-                    })
-                
-                return result
+                # 只添加第一张图片（默认只返回一张）
+                if image_matches:
+                    image_type, base64_data = image_matches[0]
+                    result["image"] = f"data:image/{image_type};base64,{base64_data}"
             else:
-                # 纯文本，返回列表
-                return [{"type": "text", "text": content}]
+                # 纯文本
+                result["text"] = content
+            
+            return result
                 
         except Exception as e:
-            # 如果解析失败，返回文本
-            return [{"type": "text", "text": response.text()}]
+            # 记录错误日志
+            print(f"❌ 响应处理失败: {e}")
+            # 返回空结果而不是错误信息
+            return {"text": "", "image": "", "video": ""}
             
-    def process_text(self, text: str) -> Dict[str, Any]:
-        """处理文本输入"""
+    def _process_input(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """处理多模态输入（文本+图片/视频）"""
         try:
             model = self.get_model()
+            content = []
             
-            message = {
-                "role": "user",
-                "content": [{"type": "text", "text": text}]
-            }
+            # 处理文本输入
+            if 'text' in input_data:
+                text_content = input_data['text']
+                content.append({
+                    "type": "text",
+                    "text": text_content
+                })
             
+            # 处理图片输入
+            if 'image' in input_data:
+                content.append({
+                    "type": "image",
+                    "source_type": "base64",
+                    "data": input_data['image'],
+                    "mime_type": "image/jpeg"
+                })
+            
+            # 处理视频输入
+            if 'video' in input_data:
+                content.append({
+                    "type": "video",
+                    "source_type": "base64",
+                    "data": input_data['video'],
+                    "mime_type": "video/mp4"
+                })
+            
+            # 构建消息
+            message = {"role": "user", "content": content}
             response = model.invoke([message])
             return self._process_response(response)
+            
         except Exception as e:
-            return {"type": "error", "error": f"文本处理错误: {e}"}
-
-    def process_image(self, image_path: str, text: str) -> Dict[str, Any]:
-        """处理图片输入"""
-        try:
-            # 读取图片文件
-            with open(image_path, "rb") as f:
-                image_data = base64.b64encode(f.read()).decode("utf-8")
-            
-            model = self.get_model()
-            
-            message = {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": text},
-                    {
-                        "type": "image",
-                        "source_type": "base64",
-                        "data": image_data,
-                        "mime_type": "image/jpeg"
-                    }
-                ]
-            }
-            
-            response = model.invoke([message])
-            print(response)
-            print(response.content)
-            return self._process_response(response)
-        except Exception as e:
-            return {"type": "error", "error": f"图片处理错误: {e}"}
-
-    def process_video(self, video_path: str, text: str) -> Dict[str, Any]:
-        """处理视频输入"""
-        try:
-            # 读取视频文件
-            with open(video_path, "rb") as f:
-                video_data = base64.b64encode(f.read()).decode("utf-8")
-            
-            model = self.get_model()
-            
-            message = {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": text},
-                    {
-                        "type": "video",
-                        "source_type": "base64",
-                        "data": video_data,
-                        "mime_type": "video/mp4"
-                    }
-                ]
-            }
-            
-            response = model.invoke([message])
-            return self._process_response(response)
-        except Exception as e:
-            return {"type": "error", "error": f"视频处理错误: {e}"}
-
-    def process_audio(self, audio_path: str, text: str) -> Dict[str, Any]:
-        """处理音频输入"""
-        try:
-            # 读取音频文件
-            with open(audio_path, "rb") as f:
-                audio_data = base64.b64encode(f.read()).decode("utf-8")
-            
-            model = self.get_model()
-            
-            message = {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": text},
-                    {
-                        "type": "audio",
-                        "source_type": "base64",
-                        "data": audio_data,
-                        "mime_type": "audio/wav"
-                    }
-                ]
-            }
-            
-            response = model.invoke([message])
-            return self._process_response(response)
-        except Exception as e:
-            return {"type": "error", "error": f"音频处理错误: {e}"}
+            # 记录错误日志
+            print(f"❌ 多模态处理失败: {e}")
+            # 返回空结果而不是错误信息
+            return {"text": "", "image": "", "video": ""}
     
-    def smart_process(self, text: str, file_path: Optional[str] = None) -> Dict[str, Any]:
-        """
-        智能处理：根据输入自动选择处理方式
-        """
-        if file_path:
-            # 根据文件扩展名判断类型
-            ext = file_path.lower().split('.')[-1]
-            
-            if ext in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp']:
-                return self.process_image(file_path, text)
-            elif ext in ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm']:
-                return self.process_video(file_path, text)
-            elif ext in ['wav', 'mp3', 'aac', 'flac', 'ogg', 'm4a']:
-                return self.process_audio(file_path, text)
-            else:
-                return {"type": "error", "error": f"不支持的文件类型: {ext}"}
-        else:
-            return self.process_text(text)
+    def save_images_from_response(self, response_data: List[Dict[str, Any]], output_dir: str = "saved_images") -> Dict[str, Any]:
+        """从响应中保存图片"""
+        import os
+        import base64
+        from pathlib import Path
+        
+        # 创建输出目录
+        output_path = Path(output_dir)
+        output_path.mkdir(exist_ok=True)
+        
+        result = {
+            "saved_images": [],
+            "errors": []
+        }
+        
+        # 遍历响应列表
+        for item in response_data:
+            if item["type"] == "image":
+                try:
+                    # 获取图片数据
+                    base64_data = item.get("base64_data")
+                    image_type = item.get("image_type", "png")
+                    
+                    if base64_data:
+                        # 解码base64数据
+                        image_data = base64.b64decode(base64_data)
+                        
+                        # 生成文件名
+                        if image_type.lower() == 'jpeg':
+                            image_type = 'jpg'
+                        filename = f"generated_image_{item.get('index', 1)}.{image_type}"
+                        file_path = output_path / filename
+                        
+                        # 保存图片
+                        with open(file_path, 'wb') as f:
+                            f.write(image_data)
+                        
+                        result["saved_images"].append({
+                            "filename": filename,
+                            "file_path": str(file_path),
+                            "size_bytes": len(image_data),
+                            "type": image_type
+                        })
+                        
+                        print(f"✅ 图片已保存: {file_path}")
+                    else:
+                        result["errors"].append(f"图片缺少base64数据")
+                        
+                except Exception as e:
+                    error_msg = f"保存图片失败: {e}"
+                    result["errors"].append(error_msg)
+                    print(f"❌ {error_msg}")
+        
+        return result
     
     def get_model_config(self) -> Dict[str, Any]:
         """获取模型配置"""
@@ -271,8 +238,27 @@ class LangChainLLM:
         """获取模型提供商"""
         if self.provider is None:
             self.init_model()
-        return self.provider
+        return self.provider 
+
+    def _encode_file(self, file_path: str) -> str:
+        """编码文件为base64"""
+        try:
+            with open(file_path, 'rb') as f:
+                import base64
+                return base64.b64encode(f.read()).decode('utf-8')
+        except Exception as e:
+            print(f"❌ 文件编码失败: {e}")
+            return ""
     
-    def get_available_models(self) -> list:
-        """获取可用的模型列表"""
-        return self.config_reader.get_available_models() 
+    def _get_mime_type(self, file_path: str) -> str:
+        """获取文件的MIME类型"""
+        ext = file_path.lower().split('.')[-1]
+        mime_types = {
+            'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
+            'gif': 'image/gif', 'bmp': 'image/bmp', 'webp': 'image/webp',
+            'mp4': 'video/mp4', 'avi': 'video/x-msvideo', 'mov': 'video/quicktime',
+            'wmv': 'video/x-ms-wmv', 'flv': 'video/x-flv', 'webm': 'video/webm',
+            'wav': 'audio/wav', 'mp3': 'audio/mpeg', 'aac': 'audio/aac',
+            'flac': 'audio/flac', 'ogg': 'audio/ogg', 'm4a': 'audio/mp4'
+        }
+        return mime_types.get(ext, 'application/octet-stream') 

@@ -1,0 +1,20 @@
+[
+  {
+    "round": 1,
+    "config": "image_generation",
+    "output": {
+      "text": "中国的首都是北京市。",
+      "image": "",
+      "video": ""
+    }
+  },
+  {
+    "round": 2,
+    "config": "image_judgment",
+    "output": {
+      "text": "yes",
+      "image": "",
+      "video": ""
+    }
+  }
+]
