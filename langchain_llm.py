@@ -173,62 +173,6 @@ class LangChainLLM:
             # 返回空结果而不是错误信息
             return {"text": "", "image": "", "video": ""}
     
-    def save_images_from_response(self, response_data: List[Dict[str, Any]], output_dir: str = "saved_images") -> Dict[str, Any]:
-        """从响应中保存图片"""
-        import os
-        import base64
-        from pathlib import Path
-        
-        # 创建输出目录
-        output_path = Path(output_dir)
-        output_path.mkdir(exist_ok=True)
-        
-        result = {
-            "saved_images": [],
-            "errors": []
-        }
-        
-        # 遍历响应列表
-        for item in response_data:
-            if item["type"] == "image":
-                try:
-                    # 获取图片数据
-                    base64_data = item.get("base64_data")
-                    image_type = item.get("image_type", "png")
-                    
-                    if base64_data:
-                        # 解码base64数据
-                        image_data = base64.b64decode(base64_data)
-                        
-                        # 生成文件名
-                        if image_type.lower() == 'jpeg':
-                            image_type = 'jpg'
-                        filename = f"generated_image_{item.get('index', 1)}.{image_type}"
-                        file_path = output_path / filename
-                        
-                        # 保存图片
-                        with open(file_path, 'wb') as f:
-                            f.write(image_data)
-                        
-                        result["saved_images"].append({
-                            "filename": filename,
-                            "file_path": str(file_path),
-                            "size_bytes": len(image_data),
-                            "type": image_type
-                        })
-                        
-                        print(f"✅ 图片已保存: {file_path}")
-                    else:
-                        result["errors"].append(f"图片缺少base64数据")
-                        
-                except Exception as e:
-                    error_msg = f"保存图片失败: {e}"
-                    result["errors"].append(error_msg)
-                    print(f"❌ {error_msg}")
-        
-        return result
-    
-    def get_model_config(self) -> Dict[str, Any]:
         """获取模型配置"""
         if self.config is None:
             self.init_model()

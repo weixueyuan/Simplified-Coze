@@ -22,6 +22,8 @@ class PipelineController:
         self.pipeline_configs = self._load_pipeline_configs()
         self.llm_instances = {}  # 缓存LLM实例
         self.config_file = config_file # 添加config_file属性
+        self.error_occurred = False  # 错误标志
+        self.error_message = ""      # 错误信息
     
     def _load_pipeline_configs(self) -> List[Dict[str, Any]]:
         """加载流水线配置，按顺序排列"""
@@ -40,42 +42,61 @@ class PipelineController:
         """执行完整的流水线"""
         print(f"🚀 开始执行流水线，共{len(self.pipeline_configs)}轮")
         
+        # 重置错误状态
+        self.error_occurred = False
+        self.error_message = ""
+        
         # 处理初始输入（一定是字典格式）
         print("📥 输入格式: 字典")
         if 'text' in initial_input:
             print(f"  文本: {initial_input['text']}")
         if 'image' in initial_input:
-            print(f"  图片: {initial_input['image']}")
+            print(f"  图片: [已编码，大小: {len(initial_input['image'])} 字符]")
         if 'video' in initial_input:
-            print(f"  视频: {initial_input['video']}")
+            print(f"  视频: [已编码，大小: {len(initial_input['video'])} 字符]")
         
         results = []
         
-        for i, config in enumerate(self.pipeline_configs):
-            print(f"\n{'='*50}")
-            print(f"第{i}轮: {config['section_name']}")
-            print(f"{'='*50}")
-            print(f"🔍 初始输入: {initial_input}")
-            # 执行当前轮次
-            output = self._execute_round(config, i, initial_input)
+        try:
+            for i, config in enumerate(self.pipeline_configs):
+                print(f"\n{'='*50}")
+                print(f"第{i}轮: {config['section_name']}")
+                print(f"{'='*50}")
+                print(f"🔍 初始输入: {initial_input}")
+                
+                # 执行当前轮次
+                output = self._execute_round(config, i, initial_input)
+                
+                # 检查是否出错
+                if self._is_error_output(output):
+                    self._handle_pipeline_error(i, config, output)
+                    break
+                
+                # 存储输出到memory
+                self.memory.store_round_output(output, i+1)
+                
+                # 保存结果
+                results.append({
+                    'round': i+1,
+                    'config': config['section_name'],
+                    'output': output,
+                    'status': 'success'
+                })
+                
+                # 打印memory状态
+                self.memory.print_memory_status()
+                
+                print(f"✅ 第{i}轮执行成功")
             
-            # 存储输出到memory
-            self.memory.store_round_output(output, i+1)
-            
-            # 保存结果
-            results.append({
-                'round': i+1,
-                'config': config['section_name'],
-                'output': output
-            })
-            # 打印memory状态
-            self.memory.print_memory_status()
-        
-        print(f"\n🎉 流水线执行完成！")
-        print(f"🔍 流水线结果: {self.memory.memory}")
-        # 清空memory
-        self.memory.clear_memory()
-        print("🧹 Memory已清空，准备下次执行")
+            if not self.error_occurred:
+                print(f"\n🎉 流水线执行完成！")
+                print(f"🔍 流水线结果: {self.memory.memory}")
+            else:
+                print(f"\n❌ 流水线执行失败！")
+                print(f"🔍 错误信息: {self.error_message}")
+                
+        except Exception as e:
+            self._handle_critical_error(e)
         
         return results
     
@@ -215,25 +236,31 @@ class PipelineController:
             round_dir = output_path / f"round_{round_num}_{config_name}"
             round_dir.mkdir(exist_ok=True)
             
-            # 保存文本和图片
-            if isinstance(output, list):
-                for i, item in enumerate(output):
-                    if item.get('type') == 'text':
-                        text_file = round_dir / f"text_{i}.txt"
-                        with open(text_file, 'w', encoding='utf-8') as f:
-                            f.write(item.get('text', ''))
-                        print(f"  📝 保存文本: {text_file}")
-                    
-                    elif item.get('type') == 'image':
-                        image_file = round_dir / f"image_{i}.png"
-                        try:
-                            import base64
-                            image_data = base64.b64decode(item.get('data', ''))
-                            with open(image_file, 'wb') as f:
-                                f.write(image_data)
-                            print(f"  🖼️ 保存图片: {image_file}")
-                        except Exception as e:
-                            print(f"  ❌ 保存图片失败: {e}")
+            # 保存文本内容
+            if output.get("text"):
+                text_file = round_dir / "output.txt"
+                with open(text_file, "w", encoding="utf-8") as f:
+                    f.write(output["text"])
+                print(f"  📝 保存文本: {text_file}")
+            
+            # 保存图片内容
+            if output.get("image"):
+                image_file = round_dir / "output.png"
+                try:
+                    import base64
+                    # 提取base64数据
+                    match = re.match(r"data:image/([^;]+);base64,(.*)", output["image"])
+                    if match:
+                        image_type = match.group(1)
+                        base64_data = match.group(2)
+                        image_data = base64.b64decode(base64_data)
+                        with open(image_file, "wb") as f:
+                            f.write(image_data)
+                        print(f"  🖼️ 保存图片: {image_file}")
+                    else:
+                        print(f"  ❌ 图片数据格式错误，无法保存")
+                except Exception as e:
+                    print(f"  ❌ 保存图片失败: {e}")
             
             # 保存JSON格式的输出
             json_file = round_dir / "output.json"
@@ -250,11 +277,19 @@ class PipelineController:
         # 保存memory日志
         self.memory.save_memory_log(str(output_path))
         
+        # 在保存逻辑的最后添加错误日志保存
+        if self.error_occurred:
+            error_log = output_path / "error_log.txt"
+            with open(error_log, 'w', encoding='utf-8') as f:
+                f.write(f"Pipeline Error Log\n")
+                f.write(f"==================\n")
+                f.write(f"Error Occurred: {self.error_occurred}\n")
+                f.write(f"Error Message: {self.error_message}\n")
+                f.write(f"Timestamp: {__import__('datetime').datetime.now()}\n")
+            print(f"  📋 保存错误日志: {error_log}")
+        
         print(f"✅ 所有输出已保存完成！")
         
-        # 清空memory
-        self.memory.clear_memory()
-        print("🧹 Memory已清空，准备下次执行")
     
     def get_pipeline_summary(self) -> Dict[str, Any]:
         """获取流水线执行摘要"""
@@ -268,10 +303,12 @@ class PipelineController:
     
     def print_pipeline_status(self):
         """打印流水线状态"""
-        summary = self.get_pipeline_summary()
         print(f"\n=== 流水线状态 ===")
-        print(f"总轮数: {summary['total_rounds']}")
-        print(f"已完成: {summary['completed_rounds']}")
+        print(f"总轮数: {len(self.pipeline_configs)}")
+        print(f"已完成: {len(self.memory.memory)}")
+        print(f"错误状态: {'❌ 有错误' if self.error_occurred else '✅ 正常'}")
+        if self.error_occurred:
+            print(f"错误信息: {self.error_message}")
         
         self.memory.print_memory_status()
     
