@@ -86,6 +86,9 @@ prompt = Compare these images: Original: {image1}, Converted: {image2}
 
 ## 📁 Output Structure
 
+Two output organization modes are supported:
+
+### Mode 1: Combined (Default)
 ```
 outputs/
 ├── workflow_name/
@@ -95,6 +98,33 @@ outputs/
 │   ├── videos/
 │   │   └── workflow_name_1.mp4
 │   └── output.jsonl
+```
+
+### Mode 2: By Rounds
+```
+outputs/
+├── round1/
+│   ├── images/
+│   │   └── {filename}.png
+│   ├── videos/
+│   │   └── {filename}.mp4
+│   └── output.json
+├── round2/
+│   ├── images/
+│   │   └── {filename}.png
+│   └── output.json
+├── round3/
+│   └── output.json
+└── summary.jsonl
+```
+
+**Usage:**
+```python
+# Combined mode (default)
+processor.process(results, filename="workflow", save_mode="combined")
+
+# Rounds mode
+processor.process(results, filename="workflow", save_mode="rounds")
 ```
 
 ## 🎯 Use Cases

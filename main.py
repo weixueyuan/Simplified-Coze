@@ -50,8 +50,14 @@ Next to the computer screen, place a BANDAI-style toy packaging box printed with
     logger.info("处理输出...")
     console_processor = ConsoleOutputProcessor()
     output_processor = FileOutputProcessor()
+    
     console_processor.process(results)  # 控制台输出
-    output_processor.process(results, output_dir="outputs", filename=filename)  # 文件输出
+    
+    # 默认模式：合并保存
+    output_processor.process(results, output_dir="outputs", filename=filename, save_mode="combined")
+    
+    # 可选：按轮次保存（取消注释下面这行来启用）
+    # output_processor.process(results, output_dir="outputs_rounds", filename=filename, save_mode="rounds")
     
     logger.info("🎉 流水线系统运行完成！")
     return results
