@@ -1,13 +1,4 @@
-langchain==0.3.27
-langchain-core==0.3.75
-langchain-text-splitters==0.3.11
-langsmith==0.4.21
-httpx==0.28.1
-requests==2.32.5
-fastapi==0.104.1
-uvicorn==0.24.0
-python-multipart==0.0.6
-pydantic==2.11.7
-Pillow==10.1.0
-opencv-python==4.8.1.78
-numpy==1.24.3 
+# 日志相关
+colorlog>=6.7.0
+
+# 其他现有依赖可以在这里添加 
