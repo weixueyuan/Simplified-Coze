@@ -1,304 +1,234 @@
-# LangChain 流水线系统
+# Simplified-Coze
 
-一个基于 LangChain 的多轮 AI 处理流水线系统，支持多模态输入输出（文本、图片、视频），采用模块化架构设计。
+一个简化版的 AI 工作流编排系统，支持多轮对话流水线搭建，可以在提示词中使用变量和引用前几轮的输出结果。
 
-## ✨ 特性
+## ✨ 核心特性
 
-- 🔄 **多轮流水线处理**：支持配置驱动的多轮 AI 处理流程
-- 🎯 **多模态支持**：支持文本、图片、视频的输入和输出
-- 🧠 **智能记忆管理**：跨轮次的数据传递和变量替换
-- 📊 **多种输出方式**：控制台输出 + 文件保存
-- 🎨 **彩色日志系统**：分级日志记录，支持文件轮转
-- 🔧 **模块化架构**：易于扩展和维护
-
-## 📁 项目结构
-
-```
-langchain/
-├── config/                 # 配置模块
-│   ├── config_reader.py   # 配置文件读取器
-│   ├── config_example.ini # 配置文件示例
-│   └── config.ini         # 主配置文件（不会被git追踪）
-├── core/                   # 核心模块
-│   ├── langchain_llm.py   # LangChain LLM 封装
-│   ├── pipeline_controller.py  # 流水线控制器
-│   └── pipeline_memory.py # 流水线记忆管理
-├── processors/            # 处理器模块
-│   ├── input_processor.py # 输入处理器
-│   └── output_processor.py # 输出处理器
-├── utils/                 # 工具模块
-│   ├── file_utils.py      # 文件处理工具
-│   ├── data_utils.py      # 数据处理工具
-│   └── log_config.py      # 日志配置
-├── examples/              # 示例代码
-│   └── logging_example.py # 日志使用示例
-├── input/                 # 输入文件目录
-├── outputs/               # 输出文件目录
-├── logs/                  # 日志文件目录
-├── main.py               # 主程序入口
-├── requirements.txt      # 依赖包列表
-├── .gitignore            # Git 忽略文件
-├── README.md             # 英文说明文档
-└── README_zh.md          # 中文说明文档
-```
+- 🔧 **可视化流水线搭建**：通过配置文件定义多轮 AI 处理流程
+- 🔄 **轮次输出引用**：支持在提示词中引用前几轮的输出内容
+- 📝 **变量替换系统**：支持在提示词中使用自定义变量
+- 🎯 **多模态处理**：支持文本、图片、视频的输入和输出
+- 📊 **结构化输出**：自动保存每轮结果为 JSONL 格式
+- 🎨 **多模型支持**：兼容 OpenAI、Claude、Gemini 等主流模型
 
 ## 🚀 快速开始
 
-### 1. 环境准备
+### 1. 安装依赖
 
 ```bash
-# 克隆项目
-git clone <repository-url>
-cd langchain
-
-# 安装依赖
+git clone https://github.com/weixueyuan/Simplified-Coze.git
+cd Simplified-Coze
 pip install -r requirements.txt
 ```
 
-### 2. 配置设置
-
-复制示例配置文件并填入你的真实信息：
+### 2. 配置工作流
 
 ```bash
-# 复制示例配置文件
+# 复制示例配置
 cp config/config_example.ini config/config.ini
 
-# 编辑配置文件，填入你的 API 密钥和基础URL
+# 编辑配置文件，填入你的 API 密钥
 vim config/config.ini
 ```
 
-配置文件格式：
-
-```ini
-[openai]
-model = gpt-4o
-api_key = your-api-key
-base_url = https://api.openai.com/v1
-prompt = 你的提示词内容
-
-[claude]
-model = claude-3-5-sonnet-20241022
-api_key = your-anthropic-key
-base_url = https://api.anthropic.com
-prompt = 你的提示词内容
-```
-
-### 3. 运行程序
+### 3. 运行工作流
 
 ```bash
 python main.py
 ```
 
-**⚠️ 安全提醒：**
-- `config/config.ini` 包含敏感的 API 密钥，已被添加到 `.gitignore` 中
-- 请勿将真实的 API 密钥提交到版本控制系统
-- 使用 `config/config_example.ini` 作为模板创建你的配置文件
+## 🔧 工作流配置示例
 
-## 📝 使用说明
+### 基础配置格式
 
-### 输入数据格式
+```ini
+[step1_image_generation]
+model = gpt-4o
+base_url = https://api.openai.com/v1/
+api_key = YOUR_API_KEY
+prompt = 请生成一张关于{topic}的图片
 
+[step2_image_analysis]
+model = claude-3-5-sonnet-latest
+base_url = https://api.anthropic.com/
+api_key = YOUR_API_KEY
+prompt = 请分析这张图片的内容：{image1}。分析结果要包含{analysis_type}方面的信息。
+
+[step3_summary]
+model = gpt-4o
+base_url = https://api.openai.com/v1/
+api_key = YOUR_API_KEY
+prompt = 基于前面的结果进行总结：\n图片生成结果：{text1}\n图片分析结果：{text2}
+```
+
+### 变量和引用系统
+
+#### 1. 自定义变量
+在输入数据中定义变量：
 ```python
 raw_input = {
-    "text": "文本内容",
-    "image": "/path/to/image.jpg",  # 图片路径或 base64
-    "video": "/path/to/video.mp4",  # 视频路径或 base64
-    "filename": "output_name",      # 输出文件名
-    "promptVariables": {            # 提示词变量（可选）
-        "country": "中国",
-        "age": 18
+    "text": "初始输入文本",
+    "filename": "my_workflow",
+    "promptVariables": {
+        "topic": "未来城市",
+        "analysis_type": "建筑风格"
     }
 }
 ```
 
-### 输出文件结构
+在提示词中使用：`{topic}`, `{analysis_type}`
 
-系统会按照以下结构组织输出文件：
+#### 2. 轮次输出引用
+- `{text1}` - 引用第1轮的文本输出
+- `{text2}` - 引用第2轮的文本输出
+- `{image1}` - 引用第1轮的图片输出
+- `{video2}` - 引用第2轮的视频输出
+
+## 📋 完整工作流示例
+
+### 场景：图片生成 → 风格转换 → 内容分析
+
+```ini
+# 第一步：生成原始图片
+[generate_base_image]
+model = dall-e-3
+base_url = https://api.openai.com/v1/
+api_key = YOUR_OPENAI_KEY
+prompt = 生成一张{style}风格的{subject}图片，要求：{requirements}
+
+# 第二步：对图片进行风格转换
+[style_transfer]
+model = midjourney
+base_url = YOUR_MIDJOURNEY_API
+api_key = YOUR_MIDJOURNEY_KEY
+prompt = 将这张图片{image1}转换为{target_style}风格，保持主体不变
+
+# 第三步：分析最终结果
+[final_analysis]
+model = gpt-4-vision-preview
+base_url = https://api.openai.com/v1/
+api_key = YOUR_OPENAI_KEY
+prompt = 请对比分析两张图片的差异：\n原图：{image1}\n转换后：{image2}\n分析重点：{analysis_focus}
+```
+
+对应的输入数据：
+```python
+workflow_input = {
+    "text": "开始图片生成工作流",
+    "filename": "image_workflow",
+    "promptVariables": {
+        "style": "赛博朋克",
+        "subject": "未来城市街景",
+        "requirements": "包含霓虹灯光和飞行汽车",
+        "target_style": "水彩画",
+        "analysis_focus": "色彩变化和艺术效果"
+    }
+}
+```
+
+## 📁 输出结构
+
+系统会自动组织输出文件：
 
 ```
 outputs/
-├── {filename}/
+├── image_workflow/
 │   ├── images/
-│   │   ├── {filename}_1.png    # 第1轮生成的图片
-│   │   ├── {filename}_2.png    # 第2轮生成的图片
+│   │   ├── image_workflow_1.png    # 第1轮生成的图片
+│   │   ├── image_workflow_2.png    # 第2轮转换的图片
 │   │   └── ...
 │   ├── videos/
-│   │   ├── {filename}_1.mp4    # 第1轮生成的视频
-│   │   ├── {filename}_2.mp4    # 第2轮生成的视频
-│   │   └── ...
-│   └── output.jsonl            # JSONL格式输出（每行一个JSON对象，包含filename字段）
+│   │   └── image_workflow_1.mp4    # 如果有视频输出
+│   └── output.jsonl                # 结构化日志
 ```
 
-**JSONL格式说明：**
-每行包含一个完整的JSON对象，包含以下字段：
-- `filename`: 文件名前缀
-- `round`: 轮次编号
-- `config`: 配置名称
-- `status`: 执行状态
-- `output`: 输出内容
-  - `text`: 文本内容
-  - `has_image`: 是否包含图片（布尔值）
-  - `has_video`: 是否包含视频（布尔值）
-
-示例：
+**JSONL格式示例：**
 ```json
-{"filename": "test", "round": 1, "config": "image_generation", "status": "success", "output": {"text": "生成的图片描述文本", "has_image": true, "has_video": false}}
-{"filename": "test", "round": 2, "config": "text_processing", "status": "success", "output": {"text": "处理后的文本结果", "has_image": false, "has_video": false}}
+{"filename": "image_workflow", "round": 1, "config": "generate_base_image", "status": "success", "output": {"text": "已生成赛博朋克风格的未来城市图片", "has_image": true, "has_video": false}}
+{"filename": "image_workflow", "round": 2, "config": "style_transfer", "status": "success", "output": {"text": "已将图片转换为水彩画风格", "has_image": true, "has_video": false}}
+{"filename": "image_workflow", "round": 3, "config": "final_analysis", "status": "success", "output": {"text": "两张图片的对比分析结果...", "has_image": false, "has_video": false}}
 ```
 
-### 提示词变量替换
+## 🎯 使用场景
 
-支持在 `config/config.ini` 文件的 `prompt` 中使用变量：
+### 1. 内容创作流水线
+```
+文本生成 → 图片生成 → 视频制作 → 内容审核
+```
 
-- `{country}`, `{age}` 等：来自 `promptVariables`
-- `{text0}`, `{text1}` 等：引用历史轮次的文本输出
-- `{image1}`, `{video2}` 等：引用历史轮次的媒体文件
+### 2. 数据分析工作流
+```
+数据收集 → 数据清洗 → 分析建模 → 报告生成
+```
 
-示例：
+### 3. 多模态处理链
+```
+图片输入 → 内容识别 → 风格转换 → 质量评估
+```
+
+## 🔧 支持的模型
+
+- **OpenAI**: GPT-4, GPT-3.5, DALL-E
+- **Anthropic**: Claude 3.5 Sonnet, Claude 3 Haiku
+- **Google**: Gemini Pro, Gemini Vision
+- **其他**: 支持 OpenAI 兼容的 API
+
+## 📚 项目结构
+
+```
+Simplified-Coze/
+├── config/                 # 配置文件
+│   ├── config_example.ini # 配置示例
+│   └── config.ini         # 实际配置（不会被git追踪）
+├── core/                   # 核心引擎
+├── processors/            # 输入输出处理器
+├── utils/                 # 工具函数
+├── examples/              # 使用示例
+└── main.py               # 程序入口
+```
+
+## ⚙️ 高级功能
+
+### 条件执行
 ```ini
-prompt = 请为{country}的{age}岁用户生成内容。参考之前的输出：{text0}
+# 可以在提示词中加入条件逻辑
+prompt = 如果{image1}包含人物，则进行人脸识别；否则进行物体检测
 ```
 
-## 🔧 核心组件
+### 循环处理
+```ini
+# 通过配置多个相似步骤实现循环
+[refine_step_1]
+prompt = 优化这个结果：{text1}
 
-### 1. 流水线控制器 (PipelineController)
-
-负责整个流水线的执行流程：
-- 加载和管理配置
-- 协调各个处理器
-- 处理错误和异常
-- 管理 LLM 实例
-
-### 2. 记忆管理 (PipelineMemory)
-
-管理跨轮次的数据传递：
-- 存储每轮的输入输出
-- 支持变量引用和替换
-- 提供记忆状态查询
-
-### 3. 输入处理器 (PipelineInputProcessor)
-
-处理各种格式的输入：
-- 文件路径到 base64 的转换
-- 提示词变量替换
-- 多模态数据整合
-
-### 4. 输出处理器 (OutputProcessor)
-
-处理流水线输出：
-- **ConsoleOutputProcessor**：控制台输出
-- **FileOutputProcessor**：文件保存（新的文件结构）
-
-## 📊 日志系统
-
-系统提供分级的彩色日志输出：
-
-- **DEBUG**：详细调试信息
-- **INFO**：关键步骤信息（绿色）
-- **WARNING**：警告信息（黄色）
-- **ERROR**：错误信息（红色）
-- **CRITICAL**：严重错误（红底白字）
-
-日志文件保存在 `logs/pipeline.log`，支持自动轮转（10MB，保留5个备份）。
-
-### 日志示例
-
-```bash
-# 运行日志示例
-python examples/logging_example.py
+[refine_step_2]  
+prompt = 进一步优化：{text2}
 ```
 
-## ⚙️ 高级配置
+### 并行分支
+```ini
+# 不同的分析分支可以并行处理同一个输入
+[analysis_branch_a]
+prompt = 从技术角度分析：{image1}
 
-### 多模型支持
-
-系统支持多种 AI 模型提供商：
-
-- **OpenAI**：GPT-4, GPT-3.5 等
-- **Anthropic**：Claude 系列
-- **Google**：Gemini 系列
-
-### 自定义处理器
-
-可以通过创建新的处理器类来扩展功能：
-
-```python
-from processors.output_processor import FileOutputProcessor
-
-class CustomOutputProcessor:
-    def process(self, results, **kwargs):
-        # 自定义处理逻辑
-        pass
+[analysis_branch_b]
+prompt = 从艺术角度分析：{image1}
 ```
 
-## 🛠️ 开发指南
+## 🔒 安全说明
 
-### 添加新的模型支持
-
-1. 在 `config/config.ini` 中添加新的配置节
-2. 在 `LangChainLLM` 中添加对应的环境变量设置
-3. 更新模型名称映射逻辑
-
-### 扩展输入处理
-
-1. 修改 `PipelineInputProcessor` 类
-2. 添加新的处理方法
-3. 在主程序中使用新功能
-
-### 自定义输出格式
-
-1. 创建新的输出处理器类
-2. 实现自定义的文件组织逻辑
-3. 在主程序中使用新的处理器
-
-## 🐛 故障排除
-
-### 常见问题
-
-1. **模型初始化失败**
-   - 检查 API 密钥是否正确
-   - 确认网络连接正常
-   - 验证模型名称是否正确
-
-2. **文件处理错误**
-   - 确认文件路径存在
-   - 检查文件格式是否支持
-   - 验证文件权限
-
-3. **内存不足**
-   - 减少并发处理数量
-   - 优化图片/视频大小
-   - 增加系统内存
-
-### 调试模式
-
-启用详细日志：
-
-```python
-logger = setup_logging(level='DEBUG')
-```
-
-## 📄 许可证
-
-本项目采用 MIT 许可证，详见 [LICENSE](LICENSE) 文件。
+- ✅ 配置文件已加入 `.gitignore`，API 密钥不会被意外提交
+- ✅ 支持环境变量方式配置敏感信息
+- ✅ 输出日志中自动脱敏，不包含 base64 等敏感数据
 
 ## 🤝 贡献指南
 
 欢迎提交 Issue 和 Pull Request！
 
-1. Fork 本项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+## 📄 许可证
 
-## 📞 联系方式
-
-如有问题或建议，请通过以下方式联系：
-
-- 提交 Issue
-- 发送邮件至：[your-email@example.com]
+MIT License
 
 ---
 
-**注意**：请确保在使用前正确配置 API 密钥，并遵守相关服务提供商的使用条款。 
+**Simplified-Coze** - 让 AI 工作流搭建变得简单高效 🚀 

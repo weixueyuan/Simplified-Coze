@@ -1,63 +1,125 @@
-# LangChain Pipeline System
+# Simplified-Coze
 
-A modular multi-round AI processing pipeline system based on LangChain, supporting multimodal input/output (text, image, video).
+A simplified AI workflow orchestration system that supports multi-round conversation pipeline building, with the ability to use variables and reference outputs from previous rounds in prompts.
 
-## Features
+## ✨ Core Features
 
-- 🔄 Multi-round pipeline processing
-- 🎯 Multimodal support (text, image, video)
-- 🧠 Intelligent memory management
-- 📊 Multiple output formats
-- 🎨 Colored logging system
-- 🔧 Modular architecture
+- 🔧 **Pipeline Building**: Define multi-round AI processing workflows through configuration files
+- 🔄 **Round Output Reference**: Reference outputs from previous rounds in prompts
+- 📝 **Variable System**: Use custom variables in prompts
+- 🎯 **Multimodal Support**: Support for text, image, and video input/output
+- 📊 **Structured Output**: Automatically save each round's results in JSONL format
+- 🎨 **Multi-Model Support**: Compatible with OpenAI, Claude, Gemini, and other mainstream models
 
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
-# Install dependencies
+# Clone and install
+git clone https://github.com/weixueyuan/Simplified-Coze.git
+cd Simplified-Coze
 pip install -r requirements.txt
 
-# Configure your API keys in config.ini
-# Run the pipeline
+# Configure workflow
+cp config/config_example.ini config/config.ini
+# Edit config.ini with your API keys
+
+# Run workflow
 python main.py
 ```
 
-## Documentation
+## 🔧 Workflow Configuration
 
-For detailed documentation in Chinese, please see [README_zh.md](README_zh.md).
+### Basic Format
 
-## Project Structure
+```ini
+[step1_generation]
+model = gpt-4o
+base_url = https://api.openai.com/v1/
+api_key = YOUR_API_KEY
+prompt = Generate content about {topic}
 
-```
-langchain/
-├── config/                 # Configuration module
-├── core/                   # Core modules
-├── processors/             # Input/Output processors
-├── utils/                  # Utility modules
-├── docs/                   # Documentation
-├── examples/               # Example code
-├── input/                  # Input files
-├── outputs/                # Output files
-├── logs/                   # Log files
-├── main.py                 # Main entry point
-├── requirements.txt        # Dependencies
-└── README_zh.md           # Chinese documentation
+[step2_analysis]
+model = claude-3-5-sonnet-latest
+base_url = https://api.anthropic.com/
+api_key = YOUR_API_KEY
+prompt = Analyze this content: {text1}. Focus on {analysis_type}.
 ```
 
-## Output Structure
+### Variable System
+
+**Custom Variables:**
+```python
+workflow_input = {
+    "filename": "my_workflow",
+    "promptVariables": {
+        "topic": "AI technology",
+        "analysis_type": "technical aspects"
+    }
+}
+```
+
+**Round References:**
+- `{text1}` - Text output from round 1
+- `{image1}` - Image output from round 1
+- `{video2}` - Video output from round 2
+
+## 📋 Complete Example
+
+**Scenario: Image Generation → Style Transfer → Analysis**
+
+```ini
+[generate_image]
+model = dall-e-3
+api_key = YOUR_OPENAI_KEY
+prompt = Create a {style} style image of {subject}
+
+[transfer_style]
+model = midjourney
+api_key = YOUR_MIDJOURNEY_KEY  
+prompt = Convert this image {image1} to {target_style} style
+
+[analyze_result]
+model = gpt-4-vision-preview
+api_key = YOUR_OPENAI_KEY
+prompt = Compare these images: Original: {image1}, Converted: {image2}
+```
+
+## 📁 Output Structure
 
 ```
 outputs/
-├── {filename}/
+├── workflow_name/
 │   ├── images/
-│   │   ├── {filename}_1.png
-│   │   └── {filename}_2.png
+│   │   ├── workflow_name_1.png
+│   │   └── workflow_name_2.png
 │   ├── videos/
-│   │   ├── {filename}_1.mp4
-│   │   └── {filename}_2.mp4
-│   └── output.json
+│   │   └── workflow_name_1.mp4
+│   └── output.jsonl
 ```
 
-## License
+## 🎯 Use Cases
+
+- **Content Creation Pipeline**: Text → Image → Video → Review
+- **Data Analysis Workflow**: Collection → Cleaning → Analysis → Report
+- **Multimodal Processing**: Image Input → Recognition → Style Transfer → Quality Assessment
+
+## 🔧 Supported Models
+
+- **OpenAI**: GPT-4, GPT-3.5, DALL-E
+- **Anthropic**: Claude 3.5 Sonnet, Claude 3 Haiku  
+- **Google**: Gemini Pro, Gemini Vision
+- **Others**: OpenAI-compatible APIs
+
+## 🔒 Security
+
+- ✅ Config files in `.gitignore` - API keys won't be committed
+- ✅ Environment variable support for sensitive info
+- ✅ Auto-sanitized logs without base64 data
+
+## 📄 License
 
 MIT License
+
+---
+
+**Simplified-Coze** - Making AI workflow building simple and efficient 🚀
